@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Instagram clone</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="icon" href="picera.png">
+</head>
+<body class="bg-gray-100 font-sans min-h-screen" oncontextmenu="return false">
+
+<!-- Created By Vijay Note -->
+<div class="text-center py-3 text-sm text-gray-600 font-semibold">
+  🚀 Created by <span class="text-indigo-600 font-bold">Vijay Saradhi</span>
+</div>
+
+<!-- Auth Container -->
+<div id="auth-container" class="w-full max-w-md p-8 bg-white rounded-2xl shadow-xl mx-auto mt-6 transition-all">
+  <h1 class="text-3xl font-bold text-indigo-600 mb-6 text-center">
+    <img src="picera.png" alt="" style="width: 400px;">
+  </h1>
+  <br>
+
+  <!-- Tabs -->
+  <div class="flex mb-6 rounded-lg overflow-hidden border border-gray-200">
+    <button id="tab-login" class="w-1/2 py-2 text-white bg-indigo-600 font-medium transition">Login</button>
+    <button id="tab-signup" class="w-1/2 py-2 text-gray-600 bg-gray-100 font-medium hover:bg-gray-200 transition">Create Account</button>
+  </div>
+
+  <!-- Login Form -->
+  <form id="login-form" class="space-y-4">
+    <input id="login-email" type="email" placeholder="Email" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
+    <input id="login-password" type="password" placeholder="Password" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
+    <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition">Login</button>
+  </form>
+
+  <!-- Signup Form -->
+  <form id="signup-form" class="space-y-4 hidden">
+    <input id="signup-username" placeholder="Username" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
+    <input id="signup-email" type="email" placeholder="Email" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
+    <input id="signup-password" type="password" placeholder="Password" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
+    <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition">Create Account</button>
+  </form>
+</div>
+
+<!-- Home Container -->
+<div id="home-container" class="hidden max-w-3xl mx-auto mt-4 px-4">
+
+  <!-- Header -->
+  <header class="bg-white shadow-md py-4 px-6 flex justify-between items-center sticky top-0 z-10 rounded-2xl mb-4">
+    <h1 class="text-2xl font-bold text-indigo-600 cursor-pointer" id="home-btn">
+      <img src="picera.png" alt="" style="width: 120px;">
+    </h1>
+    <div id="auth-area" class="flex items-center gap-4"></div>
+  </header>
+
+  <!-- Stories Top Section -->
+  <div id="stories" class="flex gap-4 overflow-x-auto p-2 mb-4">
+    <div id="upload-story-btn" class="flex-shrink-0 w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-3xl font-bold text-gray-500 cursor-pointer border-2 border-dashed border-gray-400">
+      +
+      <input id="story-image" type="file" accept="image/*" class="hidden">
+    </div>
+  </div>
+
+  <!-- Post Uploader -->
+  <div id="uploader" class="bg-white p-6 rounded-2xl shadow-md mb-6 hidden">
+    <h2 class="text-lg font-semibold mb-3">Create Post</h2>
+    <input id="post-caption" class="w-full border p-3 rounded-lg mb-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Write a caption...">
+    <input id="post-image" type="file" accept="image/*" class="mb-3">
+    <div class="flex items-center gap-3">
+      <button id="post-btn" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition">Upload Post</button>
+      <progress id="upload-progress" value="0" max="100" class="w-full hidden"></progress>
+    </div>
+  </div>
+
+  <!-- Feed -->
+  <div id="feed" class="space-y-6"></div>
+
+  <!-- Profile Panel -->
+  <div id="profile-panel" class="hidden mt-6"></div>
+</div>
+
+<!-- Story Modal -->
+<div id="story-modal" class="fixed inset-0 bg-black flex items-center justify-center hidden z-50">
+  <img id="story-modal-img" class="max-w-full max-h-full object-contain rounded-xl shadow-lg"/>
+  <button id="story-close-btn" class="absolute top-4 right-4 text-white text-3xl font-bold z-50">×</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, setDoc, doc, serverTimestamp, query, orderBy, onSnapshot, updateDoc, arrayUnion, arrayRemove, deleteDoc, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyC7Qq5fwzXlJUfxmhl2TQG_RTQBthLXQGc",
+  authDomain: "test-21521.firebaseapp.com",
+  projectId: "test-21521",
+  storageBucket: "test-21521.appspot.com",
+  messagingSenderId: "432728201577",
+  appId: "1:432728201577:web:b06d0ad20eaedd79b045f8",
+  measurementId: "G-S9QRJ3916Y"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// Elements
+const tabLogin = document.getElementById("tab-login");
+const tabSignup = document.getElementById("tab-signup");
+const loginForm = document.getElementById("login-form");
+const signupForm = document.getElementById("signup-form");
+const authContainer = document.getElementById("auth-container");
+const homeContainer = document.getElementById("home-container");
+const uploader = document.getElementById("uploader");
+const storiesDiv = document.getElementById("stories");
+const feed = document.getElementById("feed");
+const authArea = document.getElementById("auth-area");
+const postBtn = document.getElementById("post-btn");
+const progressBar = document.getElementById("upload-progress");
+const profilePanel = document.getElementById("profile-panel");
+const homeBtn = document.getElementById("home-btn");
+const uploadStoryBtn = document.getElementById("upload-story-btn");
+const storyImageInput = document.getElementById("story-image");
+
+// Story Modal
+const storyModal = document.getElementById("story-modal");
+const storyModalImg = document.getElementById("story-modal-img");
+const storyCloseBtn = document.getElementById("story-close-btn");
+
+let currentUser = null;
+let currentUserStories = [];
+let currentStoryIndex = 0;
+let storyInterval;
+
+// -------------------- Auth Tabs --------------------
+tabLogin.addEventListener("click",()=>{loginForm.classList.remove("hidden");signupForm.classList.add("hidden");tabLogin.classList.add("bg-indigo-600","text-white");tabLogin.classList.remove("bg-gray-100","text-gray-600");tabSignup.classList.add("bg-gray-100","text-gray-600");tabSignup.classList.remove("bg-indigo-600","text-white");});
+tabSignup.addEventListener("click",()=>{loginForm.classList.add("hidden");signupForm.classList.remove("hidden");tabSignup.classList.add("bg-indigo-600","text-white");tabSignup.classList.remove("bg-gray-100","text-gray-600");tabLogin.classList.add("bg-gray-100","text-gray-600");tabLogin.classList.remove("bg-indigo-600","text-white");});
+
+// -------------------- Signup --------------------
+signupForm.addEventListener("submit", async e=>{e.preventDefault();const email=document.getElementById("signup-email").value;const password=document.getElementById("signup-password").value;const username=document.getElementById("signup-username").value;try {const userCred = await createUserWithEmailAndPassword(auth,email,password);await updateProfile(userCred.user,{displayName:username});await setDoc(doc(db,"users",userCred.user.uid),{uid: userCred.user.uid,username,email,createdAt: serverTimestamp()});} catch(err){alert(err.message);}});
+
+// -------------------- Login --------------------
+loginForm.addEventListener("submit", async e=>{e.preventDefault();const email=document.getElementById("login-email").value;const password=document.getElementById("login-password").value;try{await signInWithEmailAndPassword(auth,email,password);}catch(err){alert(err.message);}});
+
+// -------------------- Auth State --------------------
+onAuthStateChanged(auth,user=>{
+  if(user){
+    currentUser=user;
+    authContainer.classList.add("hidden");
+    homeContainer.classList.remove("hidden");
+    uploader.classList.remove("hidden");
+    profilePanel.classList.add("hidden");
+    authArea.innerHTML=`<span class="text-sm font-medium cursor-pointer" id="profile-btn">Hello, ${user.displayName||user.email}</span>
+      <button id="logout-btn" class="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition">Logout</button>`;
+
+    document.getElementById("logout-btn").addEventListener("click",()=>signOut(auth));
+    document.getElementById("profile-btn").addEventListener("click",()=>showProfile(currentUser.uid));
+    showFeed();
+    showStories();
+  } else {
+    currentUser=null;
+    authContainer.classList.remove("hidden");
+    homeContainer.classList.add("hidden");
+    uploader.classList.add("hidden");
+    authArea.innerHTML="";
+  }
+});
+
+// -------------------- Go Home --------------------
+homeBtn.addEventListener("click",()=>{profilePanel.classList.add("hidden");feed.scrollIntoView({behavior:"smooth"});});
+
+// -------------------- Upload Post --------------------
+postBtn.addEventListener("click", async ()=>{
+  const caption=document.getElementById("post-caption").value;
+  const file=document.getElementById("post-image").files[0];
+  if(!caption && !file) return alert("Write caption or upload image");
+  if(!currentUser) return alert("Login first");
+
+  progressBar.value=0;
+  progressBar.classList.remove("hidden");
+
+  let imageUrl="";
+  if(file){
+    const formData=new FormData();
+    formData.append("file",file);
+    formData.append("upload_preset","testtt");
+    const res=await fetch(`https://api.cloudinary.com/v1_1/dlycwcdlq/image/upload`,{method:"POST",body:formData});
+    const data=await res.json();
+    imageUrl=data.secure_url;
+  }
+
+  await addDoc(collection(db,"posts"),{
+    caption,
+    imageUrl,
+    uid: currentUser.uid,
+    username: currentUser.displayName || currentUser.email,
+    likes: [],
+    comments: [],
+    createdAt: serverTimestamp()
+  });
+
+  progressBar.classList.add("hidden");
+  document.getElementById("post-caption").value="";
+  document.getElementById("post-image").value="";
+});
+
+// -------------------- Upload Story --------------------
+uploadStoryBtn.addEventListener("click", ()=> storyImageInput.click());
+storyImageInput.addEventListener("change", async ()=>{
+  const file = storyImageInput.files[0];
+  if(!file) return;
+  const formData = new FormData();
+  formData.append("file",file);
+  formData.append("upload_preset","testtt");
+  const res=await fetch(`https://api.cloudinary.com/v1_1/dlycwcdlq/image/upload`,{method:"POST",body:formData});
+  const data=await res.json();
+  await addDoc(collection(db,"stories"),{
+    uid: currentUser.uid,
+    username: currentUser.displayName,
+    imageUrl: data.secure_url,
+    createdAt: serverTimestamp()
+  });
+  storyImageInput.value="";
+  showStories();
+});
+
+// -------------------- Show Stories --------------------
+function showStories(){
+  const q = query(collection(db,"stories"), orderBy("createdAt","desc"));
+  onSnapshot(q, snapshot=>{
+    storiesDiv.querySelectorAll(".story-user").forEach(e=>e.remove());
+    const now = new Date().getTime();
+    const usersAdded = new Set();
+    snapshot.forEach(docSnap=>{
+      const story = docSnap.data();
+      if(usersAdded.has(story.uid)) return;
+      if(story.createdAt?.toDate && now - story.createdAt.toDate().getTime() > 24*60*60*1000) return;
+      usersAdded.add(story.uid);
+
+      const div = document.createElement("div");
+      div.className="story-user flex-shrink-0 text-center cursor-pointer w-20";
+      div.innerHTML=`<div class="w-20 h-20 rounded-full p-1 bg-gradient-to-tr from-indigo-500 to-pink-500 relative">
+        <img src="${story.imageUrl}" class="w-full h-full rounded-full border-2 border-white object-cover"/>
+        ${story.uid===currentUser.uid ? `<button class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs delete-story" data-id="${docSnap.id}">×</button>` : ''}
+      </div>
+      <span class="text-xs block truncate mt-1">${story.username}</span>`;
+
+      div.querySelector(".delete-story")?.addEventListener("click", async e=>{
+        e.stopPropagation();
+        await deleteDoc(doc(db,"stories",div.querySelector(".delete-story").dataset.id));
+      });
+
+      div.addEventListener("click", async ()=>{
+        const userStoriesSnap = await getDocs(query(collection(db,"stories"), orderBy("createdAt","asc")));
+        currentUserStories = [];
+        const nowTime = new Date().getTime();
+        userStoriesSnap.forEach(snap=>{
+          const s = snap.data();
+          if(s.uid === story.uid && nowTime - s.createdAt?.toDate().getTime() <= 24*60*60*1000){
+            currentUserStories.push(s);
+          }
+        });
+        showStoryModal();
+      });
+
+      storiesDiv.appendChild(div);
+    });
+  });
+}
+
+// -------------------- Story Modal --------------------
+function showStoryModal() {
+  if (currentUserStories.length === 0) return;
+  
+  storyModal.classList.remove("hidden");
+  currentStoryIndex = 0;
+  storyModalImg.src = currentUserStories[currentStoryIndex].imageUrl;
+
+  clearInterval(storyInterval);
+  storyInterval = setInterval(() => {
+    currentStoryIndex++;
+    if (currentStoryIndex >= currentUserStories.length) {
+      storyModal.classList.add("hidden");
+      clearInterval(storyInterval);
+    } else {
+      storyModalImg.src = currentUserStories[currentStoryIndex].imageUrl;
+    }
+  }, 5000); // 5 seconds per story
+}
+
+// Close button
+storyCloseBtn.addEventListener("click", () => {
+  storyModal.classList.add("hidden");
+  clearInterval(storyInterval);
+});
+
+// -------------------- Show Feed --------------------
+function showFeed(){
+  const q=query(collection(db,"posts"),orderBy("createdAt","desc"));
+  onSnapshot(q,snapshot=>{
+    feed.innerHTML="";
+    snapshot.forEach(docSnap=>{
+      const post = docSnap.data();
+      const div = document.createElement("div");
+      div.className="bg-white p-6 rounded-2xl shadow-md hover:shadow-xl transition";
+
+      let timeText = "";
+      if(post.createdAt?.toDate){
+        const diff = (new Date().getTime() - post.createdAt.toDate().getTime())/1000;
+        if(diff<60) timeText = `${Math.floor(diff)}s ago`;
+        else if(diff<3600) timeText = `${Math.floor(diff/60)}m ago`;
+        else if(diff<86400) timeText = `${Math.floor(diff/3600)}h ago`;
+        else if(diff<2592000) timeText = `${Math.floor(diff/86400)}d ago`;
+        else timeText = `${Math.floor(diff/2592000)}mo ago`;
+      }
+
+      div.innerHTML=`<div class="flex justify-between items-start mb-2">
+        <h3 class="font-semibold text-indigo-600 cursor-pointer">${post.username}</h3>
+        <div class="flex gap-2">
+          ${post.uid===currentUser.uid?`<button class="bg-red-500 text-white px-2 py-1 rounded text-xs delete-post" data-id="${docSnap.id}">Delete</button>`:''}
+          <button class="bg-green-500 text-white px-2 py-1 rounded text-xs share-post" data-caption="${encodeURIComponent(post.caption)}" data-url="${encodeURIComponent(post.imageUrl || '')}">Share</button>
+        </div>
+      </div>
+      <p class="text-gray-700 mb-2">${post.caption}</p>
+      ${post.imageUrl?`<img src="${post.imageUrl}" class="rounded-lg w-full mb-2"/>`:''}
+      <div class="flex items-center gap-2 mb-2">
+        <button class="like-btn text-pink-500 font-medium" data-id="${docSnap.id}">${post.likes?.includes(currentUser.uid) ? '♥' : '♡'} Like</button>
+        <span class="text-gray-500">${post.likes?.length || 0} likes</span>
+      </div>
+      <p class="text-gray-400 text-sm mb-2">${timeText}</p>
+      <div class="comments-section mb-2">
+        ${post.comments?.map(c=>`<p class="text-gray-700 text-sm"><b>${c.username}:</b> ${c.text}</p>`).join('') || ''}
+        <input type="text" placeholder="Add a comment..." class="w-full border rounded-lg p-2 comment-input" data-id="${docSnap.id}">
+      </div>`;
+
+      // Like
+      const likeBtn = div.querySelector(".like-btn");
+      likeBtn.addEventListener("click", async ()=>{
+        const postRef = doc(db,"posts",likeBtn.dataset.id);
+        if(post.likes?.includes(currentUser.uid)){
+          await updateDoc(postRef,{ likes: arrayRemove(currentUser.uid) });
+        } else {
+          await updateDoc(postRef,{ likes: arrayUnion(currentUser.uid) });
+        }
+      });
+
+      // Comment
+      const commentInput = div.querySelector(".comment-input");
+      commentInput.addEventListener("keypress", async e=>{
+        if(e.key==="Enter" && commentInput.value.trim()!==""){
+          const postRef = doc(db,"posts",commentInput.dataset.id);
+          await updateDoc(postRef,{ comments: arrayUnion({username: currentUser.displayName,text:commentInput.value.trim()}) });
+          commentInput.value="";
+        }
+      });
+
+      // Delete post
+      const deleteBtn = div.querySelector(".delete-post");
+      deleteBtn?.addEventListener("click", async ()=>{
+        await deleteDoc(doc(db,"posts",deleteBtn.dataset.id));
+      });
+
+      // Share post
+      const shareBtn = div.querySelector(".share-post");
+      shareBtn.addEventListener("click", ()=>{
+        const text = shareBtn.dataset.caption + (shareBtn.dataset.url ? `\n${shareBtn.dataset.url}` : '');
+        if(navigator.share){
+          navigator.share({text});
+        } else {
+          prompt("Copy this text to share:", text);
+        }
+      });
+
+      feed.appendChild(div);
+    });
+  });
+}
+
+// -------------------- Profile --------------------
+async function showProfile(uid){
+  profilePanel.classList.remove("hidden");
+  feed.scrollIntoView({behavior:"smooth"});
+  const userRef = doc(db,"users",uid);
+  const userSnap = await getDoc(userRef);
+  if(!userSnap.exists()) return;
+  const userDoc = userSnap.data();
+  profilePanel.innerHTML=`<div class="bg-white p-6 rounded-2xl shadow-md mb-6">
+    <h2 class="text-xl font-semibold mb-1">${userDoc.username}</h2>
+    <p class="text-gray-500 mb-3">${userDoc.email}</p>
+  </div>`;
+}
+
+</script>
+</body>
+</html>
